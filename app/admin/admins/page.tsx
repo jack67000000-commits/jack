@@ -8,8 +8,8 @@ import "./admins.css";
 type AdminUser={name:string;email:string;role:string;last:string;status:string};
 const seed:AdminUser[]=[
   {name:"Jack 管理员",email:"jack67000000@gmail.com",role:"全部权限",last:"当前在线",status:"在线"},
-  {name:"内容管理员",email:"content@winking.game",role:"游戏与内容",last:"今天 09:42",status:"正常"},
-  {name:"运营人员",email:"ops@winking.game",role:"参数与链接",last:"昨天 18:20",status:"正常"},
+  {name:"内容管理员",email:"content@winking.games",role:"游戏与内容",last:"今天 09:42",status:"正常"},
+  {name:"运营人员",email:"ops@winking.games",role:"参数与链接",last:"昨天 18:20",status:"正常"},
 ];
 
 export default function AdminsPage(){

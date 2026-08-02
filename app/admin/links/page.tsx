@@ -17,15 +17,15 @@ const providers = [
 type Scope = "all" | "published" | "provider";
 
 export default function LinksPage() {
-  const [currentLink, setCurrentLink] = useState("https://winking.game/");
-  const [nextLink, setNextLink] = useState("https://winking.game/");
+  const [currentLink, setCurrentLink] = useState("https://winking.games/");
+  const [nextLink, setNextLink] = useState("https://winking.games/");
   const [scope, setScope] = useState<Scope>("all");
   const [provider, setProvider] = useState(providers[0].name);
   const [confirmed, setConfirmed] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [history, setHistory] = useState([
-    { time: "今天 09:18", scope: "全部游戏", link: "https://winking.game/" },
+    { time: "今天 09:18", scope: "全部游戏", link: "https://winking.games/" },
   ]);
 
   const affectedCount = useMemo(() => {
