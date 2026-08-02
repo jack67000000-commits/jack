@@ -1,4 +1,4 @@
-type AdminSection = "dashboard" | "games" | "admins" | "system";
+type AdminSection = "dashboard" | "games" | "links" | "admins" | "system";
 
 const groups = [
   { title: "工作台", items: [
@@ -8,7 +8,7 @@ const groups = [
   ] },
   { title: "运营设置", items: [
     { key: "forecast", icon: "↗", label: "预测参数", pending: true },
-    { key: "links", icon: "⌁", label: "跳转链接", pending: true },
+    { key: "links", href: "/admin/links", icon: "⌁", label: "跳转链接" },
     { key: "ranking", icon: "☷", label: "排序与推荐", pending: true },
   ] },
   { title: "系统", items: [
