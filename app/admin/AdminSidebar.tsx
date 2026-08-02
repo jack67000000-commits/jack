@@ -1,3 +1,7 @@
+"use client";
+
+import { supabase } from "../lib/supabase";
+
 type AdminSection = "dashboard" | "games" | "links" | "admins" | "system";
 
 const groups = [
@@ -36,7 +40,7 @@ export default function AdminSidebar({ active }: { active: AdminSection }) {
         </div>)}
       </nav>
       <div className="adminUser">
-        <b>J</b><div><strong>Jack 管理员</strong><small>jack67000000@gmail.com</small></div><a href="/admin/login" title="退出后台">↪</a>
+        <b>J</b><div><strong>Jack 管理员</strong><small>jack67000000@gmail.com</small></div><button className="logoutButton" type="button" title="退出后台" onClick={async()=>{await supabase.auth.signOut();window.location.href="/admin/login"}}>↪</button>
       </div>
     </aside>
   );

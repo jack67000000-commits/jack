@@ -1,23 +1,54 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { hasSupabaseConfig, supabase } from "../../lib/supabase";
 import "./login.css";
 
 const ADMIN_EMAIL = "jack67000000@gmail.com";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState(ADMIN_EMAIL);
-  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
-  const signIn = (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) window.location.replace("/admin");
+    });
+  }, []);
+
+  const signIn = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (email.trim().toLowerCase() !== ADMIN_EMAIL || password.length < 6) {
-      setError("邮箱或密码不正确，请检查后重试。");
+    setError("");
+
+    if (!hasSupabaseConfig) {
+      setError("后台登录服务尚未配置完成。");
       return;
     }
-    sessionStorage.setItem("winking-admin-demo", email.trim().toLowerCase());
-    window.location.href = "/admin";
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail !== ADMIN_EMAIL) {
+      setError("此邮箱没有后台登录权限。");
+      return;
+    }
+
+    setLoading(true);
+    const { error: signInError } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: window.location.origin + "/admin/auth/callback",
+      },
+    });
+    setLoading(false);
+
+    if (signInError) {
+      setError("验证邮件发送失败：" + signInError.message);
+      return;
+    }
+
+    setSent(true);
   };
 
   return (
@@ -29,19 +60,37 @@ export default function AdminLoginPage() {
           <h1>让游戏内容管理<br />更清晰、更安全。</h1>
           <p>管理游戏、图片、预测参数、跳转链接与后台账号。</p>
         </div>
-        <small>© 2026 Winking.Game</small>
+        <small>© 2026 Winking.Games</small>
       </section>
       <section className="loginPanel">
         <form onSubmit={signIn}>
-          <span className="loginBadge">管理员后台</span>
-          <h2>欢迎回来</h2>
-          <p>使用已授权的管理员账号登录。</p>
-          <label>管理员邮箱<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label>
-          <label>登录密码<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="请输入至少 6 位密码" autoComplete="current-password" required /></label>
-          <div className="loginOptions"><label><input type="checkbox" defaultChecked />保持登录</label><button type="button">忘记密码？</button></div>
-          {error && <div className="loginError">! {error}</div>}
-          <button className="loginSubmit" type="submit">进入管理后台　→</button>
-          <div className="loginNotice"><b>演示版登录说明</b><span>当前授权邮箱：{ADMIN_EMAIL}</span><span>暂未连接正式数据库，密码仅用于界面验证。</span></div>
+          <span className="loginBadge">安全管理员后台</span>
+          <h2>{sent ? "请检查邮箱" : "欢迎回来"}</h2>
+          <p>{sent ? "我们已发送安全登录链接，点击邮件中的链接即可进入后台。" : "使用已授权的管理员邮箱获取登录链接。"}</p>
+
+          {!sent ? (
+            <>
+              <label>
+                管理员邮箱
+                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
+              </label>
+              {error && <div className="loginError">! {error}</div>}
+              <button className="loginSubmit" type="submit" disabled={loading}>
+                {loading ? "正在发送…" : "发送登录验证邮件　→"}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="loginSuccess"><b>✓ 邮件已发送</b><span>发送至：{email}</span><small>登录链接会在一段时间后失效，请尽快使用。</small></div>
+              <button className="loginSubmit secondary" type="button" onClick={() => setSent(false)}>重新发送</button>
+            </>
+          )}
+
+          <div className="loginNotice">
+            <b>独立安全登录</b>
+            <span>授权邮箱：{ADMIN_EMAIL}</span>
+            <span>无需使用 ChatGPT 账号，也不需要在此页面输入密码。</span>
+          </div>
         </form>
       </section>
     </main>

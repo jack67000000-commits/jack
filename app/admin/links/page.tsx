@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import AdminSidebar from "../AdminSidebar";
+import { supabase } from "../../lib/supabase";
 import "../admin.css";
 import "./links.css";
 
@@ -28,6 +29,20 @@ export default function LinksPage() {
     { time: "今天 09:18", scope: "全部游戏", link: "https://winking.games/" },
   ]);
 
+  useEffect(() => {
+    supabase
+      .from("winking_settings")
+      .select("value")
+      .eq("key", "redirects")
+      .maybeSingle()
+      .then(({ data }) => {
+        const value = data?.value as { default_url?: string } | undefined;
+        if (value?.default_url) {
+          setCurrentLink(value.default_url);
+          setNextLink(value.default_url);
+        }
+      });
+  }, []);
   const affectedCount = useMemo(() => {
     if (scope === "published") return 607;
     if (scope === "provider") {
@@ -36,7 +51,7 @@ export default function LinksPage() {
     return 654;
   }, [provider, scope]);
 
-  const applyLink = (event: FormEvent<HTMLFormElement>) => {
+  const applyLink = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setMessage("");
@@ -63,13 +78,46 @@ export default function LinksPage() {
           ? "全部已上架游戏"
           : provider;
 
+    const { data: storedSetting } = await supabase
+      .from("winking_settings")
+      .select("value")
+      .eq("key", "redirects")
+      .maybeSingle();
+    const redirectConfig: Record<string, unknown> & { default_url: string; open_in_new_tab: boolean; published_url?: string; provider_urls?: Record<string, string> } = {
+      default_url: "https://winking.games/",
+      open_in_new_tab: false,
+      ...((storedSetting?.value ?? {}) as Record<string, unknown>),
+    };
+    if (scope === "all") redirectConfig.default_url = normalized;
+    if (scope === "published") redirectConfig.published_url = normalized;
+    if (scope === "provider") {
+      redirectConfig.provider_urls = {
+        ...((redirectConfig.provider_urls ?? {}) as Record<string, string>),
+        [provider]: normalized,
+      };
+    }
+
+    const { error: saveError } = await supabase
+      .from("winking_settings")
+      .upsert({ key: "redirects", value: redirectConfig }, { onConflict: "key" });
+    if (saveError) {
+      setError("保存失败，请重新登录后再试：" + saveError.message);
+      return;
+    }
+
+    await supabase.from("winking_audit_logs").insert({
+      action: "update_redirects",
+      entity_type: "settings",
+      entity_id: scopeLabel,
+      details: { scope, provider, url: normalized, affected_count: affectedCount },
+    });
     setCurrentLink(normalized);
     setNextLink(normalized);
     setHistory((items) => [
       { time: "刚刚", scope: scopeLabel, link: normalized },
       ...items,
     ]);
-    setMessage("已完成界面预览：" + affectedCount + " 款游戏的跳转链接已统一更新。");
+    setMessage("已永久保存：" + affectedCount + " 款游戏将使用新的跳转链接，公开前台刷新后生效。");
     setConfirmed(false);
   };
 
@@ -165,7 +213,7 @@ export default function LinksPage() {
             <button className="applyAll" type="submit">
               一键应用到 {affectedCount} 款游戏 <span>→</span>
             </button>
-            <p className="demoNotice">当前为界面功能预览。正式数据库接入后，保存会永久生效并同步到公开前台。</p>
+            <p className="demoNotice">保存内容会写入 Supabase 数据库，并同步到公开前台。</p>
           </form>
 
           <aside className="linkSidePanel">
