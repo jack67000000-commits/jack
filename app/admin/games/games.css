@@ -4,3 +4,11 @@
 .linkSyncNotice b{max-width:560px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#15251e}
 .linkSyncNotice button{margin-left:auto;border:0;background:transparent;color:#159765;font-weight:800;cursor:pointer}
 .linkHelp{display:block;margin-top:-6px;color:#708078;font-size:10px}
+
+.adminMessage{margin:0 0 18px;padding:13px 16px;border-radius:10px;font-size:13px;font-weight:700}
+.adminMessage.success{border:1px solid #bdebd7;background:#effbf5;color:#137d58}
+.adminMessage.error{border:1px solid #ffd0cb;background:#fff2f0;color:#b63838}
+.linkSyncNotice span{margin-left:auto;color:#168d63;font-weight:700}
+.statusCheck>span{height:46px;display:flex;align-items:center;gap:9px;padding:0 13px;border:1px solid #dce4e0;border-radius:10px;background:#f8fbf9;font-size:13px;font-weight:700}
+.statusCheck input{width:17px;height:17px;accent-color:#27d492}
+.gameModal .save:disabled,.dangerButton:disabled{cursor:wait;opacity:.65}

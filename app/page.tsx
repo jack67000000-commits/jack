@@ -118,35 +118,81 @@ export default function Home() {
   useEffect(() => {
     if (!hasSupabaseConfig) return;
 
+    let cancelled = false;
     const loadPublishedConfig = async () => {
-      const [{ data: overrides }, { data: redirects }] = await Promise.all([
-        supabase.from("winking_games").select("id,name_es,provider,image_url,target_url,confidence,online_users,rounds,enabled"),
+      const [{ data: overrides, error: gamesError }, { data: redirects }] = await Promise.all([
+        supabase.from("winking_games").select("id,slug,name_es,name_zh,provider,image_url,target_url,confidence,online_users,rounds,enabled,sort_order"),
         supabase.from("winking_settings").select("value").eq("key", "redirects").maybeSingle(),
       ]);
-      const redirectValue = (redirects?.value ?? {}) as RedirectValue;
-      const byId = new Map<number, any>((overrides ?? []).map((row: any) => [Number(row.id), row]));
+      if (gamesError || cancelled) return;
 
-      setLiveGames((current) => current
-        .map((game) => {
-          const row = byId.get(game.id);
-          const provider = row?.provider || game.provider;
+      const redirectValue = (redirects?.value ?? {}) as RedirectValue;
+      const rows = (overrides ?? []) as any[];
+      const byId = new Map<number, any>(rows.map((row) => [Number(row.id), row]));
+      const baseIds = new Set(games.map((game) => game.id));
+
+      const merged = games.map((game) => {
+        const row = byId.get(game.id);
+        const provider = row?.provider || game.provider;
+
+        return {
+          ...game,
+          name: row?.name_es || game.name,
+          provider,
+          imageUrl: row?.image_url || game.imageUrl,
+          link: row?.target_url || redirectValue.provider_urls?.[provider] || redirectValue.published_url || redirectValue.default_url || game.link,
+          score: row?.confidence == null ? game.score : Number(row.confidence),
+          players: row?.online_users ?? game.players,
+          rounds: row?.rounds ?? game.rounds,
+          enabled: row?.enabled ?? true,
+        };
+      });
+
+      const extras = rows
+        .filter((row) => !baseIds.has(Number(row.id)))
+        .map((row, index) => {
+          const seed = Number(row.id);
+          const base = 46 + (seed % 17);
+          const provider = row.provider || "Otros";
 
           return {
-            ...game,
-            name: row?.name_es || game.name,
+            id: seed,
+            name: row.name_es || row.name_zh || "Juego",
+            type: "Tragamonedas",
             provider,
-            imageUrl: row?.image_url || game.imageUrl,
-            link: row?.target_url || redirectValue.provider_urls?.[provider] || redirectValue.published_url || redirectValue.default_url || game.link,
-            score: row?.confidence == null ? game.score : Number(row.confidence),
-            players: row?.online_users ?? game.players,
-            rounds: row?.rounds ?? game.rounds,
-            enabled: row?.enabled ?? true,
-          };
-        })
-        .filter((game) => game.enabled !== false));
+            icon: String(row.name_es || "JG").slice(0, 2).toUpperCase(),
+            imageUrl: row.image_url || undefined,
+            link: row.target_url || redirectValue.provider_urls?.[provider] || redirectValue.published_url || redirectValue.default_url,
+            enabled: row.enabled ?? true,
+            color: palette[(games.length + index) % palette.length],
+            players: row.online_users ?? 1000,
+            rounds: row.rounds ?? 0,
+            score: Number(row.confidence ?? 60),
+            trend: [base, base + 5, base - 3, base + 7, base + 2, base + 8],
+            prizes: [4500 + (seed % 4200), 2600 + (seed % 1900), 160 + (seed % 180)],
+          } satisfies Game;
+        });
+
+      setLiveGames([...merged, ...extras].filter((game) => game.enabled !== false));
     };
 
-    loadPublishedConfig().catch(() => undefined);
+    void loadPublishedConfig();
+    const channel = supabase
+      .channel("winking-public-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "winking_games" }, () => void loadPublishedConfig())
+      .on("postgres_changes", { event: "*", schema: "public", table: "winking_settings" }, () => void loadPublishedConfig())
+      .subscribe();
+
+    const refresh = () => void loadPublishedConfig();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -240,7 +286,7 @@ export default function Home() {
         <h1>¿Cómo viene la tendencia?<em>Decidí con más contexto</em></h1>
         <p>Analizamos la actividad reciente para ofrecerte una referencia clara y simple.</p>
         <div className="stats">
-          <div><b>{games.length}</b><span>Juegos seguidos</span></div>
+          <div><b>{liveGames.length}</b><span>Juegos seguidos</span></div>
           <div><b>{liveGames.reduce((sum, game) => sum + game.players, 0).toLocaleString("es-AR")}</b><span>Jugadores online</span></div>
           <div><b>63.2%</b><span>Confianza promedio</span></div>
         </div>
