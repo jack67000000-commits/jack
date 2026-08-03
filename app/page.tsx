@@ -37,6 +37,12 @@ type RedirectValue = {
   provider_urls?: Record<string, string>;
 };
 
+type SwipePoint = {
+  x: number;
+  y: number;
+  time: number;
+};
+
 const palette = ["#8b5cf6", "#f97316", "#eab308", "#ec4899", "#22c55e", "#3b82f6", "#ef4444", "#06b6d4", "#f43f5e"];
 
 const games: Game[] = (catalog as CatalogGame[]).map((item, index) => {
@@ -99,10 +105,10 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const [isMobileCardMode, setIsMobileCardMode] = useState(false);
   const holdTimer = useRef<ReturnType<typeof window.setInterval> | null>(null);
-  const swipeStart = useRef<number | null>(null);
+  const swipeStart = useRef<SwipePoint | null>(null);
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 650px)");
+    const media = window.matchMedia("(max-width: 760px), (pointer: coarse) and (max-width: 900px)");
     const sync = () => setIsMobileCardMode(media.matches);
     sync();
     media.addEventListener("change", sync);
@@ -208,11 +214,13 @@ export default function Home() {
     holdTimer.current = window.setInterval(() => turnPage(direction), 420);
   };
 
-  const handleSwipeEnd = (clientX: number) => {
+  const handleSwipeEnd = (clientX: number, clientY: number) => {
     if (swipeStart.current == null) return;
-    const delta = clientX - swipeStart.current;
+    const delta = clientX - swipeStart.current.x;
+    const verticalDelta = clientY - swipeStart.current.y;
+    const duration = Date.now() - swipeStart.current.time;
     swipeStart.current = null;
-    if (Math.abs(delta) < 48) return;
+    if (duration > 900 || Math.abs(delta) < 46 || Math.abs(delta) < Math.abs(verticalDelta) * 1.15) return;
     turnPage(delta > 0 ? -1 : 1);
   };
 
@@ -251,8 +259,15 @@ export default function Home() {
 
         <div
           className="cards mobileSwipe"
-          onTouchStart={(event) => { swipeStart.current = event.touches[0]?.clientX ?? null; }}
-          onTouchEnd={(event) => handleSwipeEnd(event.changedTouches[0]?.clientX ?? 0)}
+          onTouchStart={(event) => {
+            const touch = event.touches[0];
+            swipeStart.current = touch ? { x: touch.clientX, y: touch.clientY, time: Date.now() } : null;
+          }}
+          onTouchCancel={() => { swipeStart.current = null; }}
+          onTouchEnd={(event) => {
+            const touch = event.changedTouches[0];
+            handleSwipeEnd(touch?.clientX ?? 0, touch?.clientY ?? 0);
+          }}
         >
           {paged.map((game) => <article key={game.id}>
             <div className="cardhead">
@@ -268,9 +283,9 @@ export default function Home() {
         </div>
 
         {pageCount > 1 && <div className="mobilePager" aria-label="Cambiar tarjeta">
-          <button type="button" onPointerDown={() => startHoldPaging(-1)} onPointerUp={stopHoldPaging} onPointerLeave={stopHoldPaging} onPointerCancel={stopHoldPaging}>‹</button>
+          <button type="button" aria-label="Tarjeta anterior" onContextMenu={(event) => event.preventDefault()} onPointerDown={(event) => { event.preventDefault(); startHoldPaging(-1); }} onPointerUp={stopHoldPaging} onPointerLeave={stopHoldPaging} onPointerCancel={stopHoldPaging}>‹</button>
           <span><b>{safePage + 1}</b><small>/ {pageCount}</small></span>
-          <button type="button" onPointerDown={() => startHoldPaging(1)} onPointerUp={stopHoldPaging} onPointerLeave={stopHoldPaging} onPointerCancel={stopHoldPaging}>›</button>
+          <button type="button" aria-label="Siguiente tarjeta" onContextMenu={(event) => event.preventDefault()} onPointerDown={(event) => { event.preventDefault(); startHoldPaging(1); }} onPointerUp={stopHoldPaging} onPointerLeave={stopHoldPaging} onPointerCancel={stopHoldPaging}>›</button>
         </div>}
 
         {pageCount > 1 && <div className="pagination" aria-label="Paginación"><span className="pageCounter">{safePage + 1} / {pageCount}</span>{dotPages.map((item) => <button key={item} className={safePage === item ? "active" : ""} onClick={() => setPage(item)} aria-label={`Ir a la página ${item + 1}`} aria-current={safePage === item ? "page" : undefined}><span /></button>)}</div>}
