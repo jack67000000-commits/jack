@@ -8,3 +8,6 @@
 /* Blend the raster logo's near-black matte into dark page surfaces without altering the brand artwork. */
 .logoBrand,.footerLogo{background:transparent!important}
 .logoBrand img,.footerLogo img,.loginBrand>img{object-fit:contain!important;mix-blend-mode:screen;filter:contrast(1.32) saturate(1.08);background:transparent!important}
+
+/* Preserve the original logo scale while retaining the dark-matte blend fix. */
+.logoBrand img,.footerLogo img,.loginBrand>img{object-fit:cover!important;object-position:center!important}

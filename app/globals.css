@@ -34,3 +34,6 @@ input,select{font-size:16px}
 .footerLogo img{height:42px!important;width:150px!important}
 @media(max-width:760px){.logoBrand img{width:150px!important;height:44px!important}.logoBrand{height:46px!important}}
 
+
+/* Preserve the original logo scale while retaining the dark-matte blend fix. */
+.logoBrand img,.footerLogo img,.loginBrand>img{object-fit:cover!important;object-position:center!important}
