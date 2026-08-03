@@ -29,10 +29,8 @@ input,select{font-size:16px}
 @supports(-webkit-touch-callout:none){@media(max-width:760px){.cards.mobileSwipe article{box-shadow:0 18px 42px rgba(0,0,0,.42)}.foot button{padding-top:13px!important;padding-bottom:13px!important}}}
 /* clean-transparent-logo */
 .logoBrand,.footerLogo{overflow:visible!important;background:transparent!important;border-radius:0!important}
-.logoBrand img,.footerLogo img{object-fit:contain!important;object-position:left center!important;background:transparent!important;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
+.logoBrand img,.footerLogo img,.loginBrand>img{object-fit:contain!important;object-position:left center!important;background:transparent!important;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
 .logoBrand img{height:52px!important;width:182px!important}
 .footerLogo img{height:42px!important;width:150px!important}
 @media(max-width:760px){.logoBrand img{width:150px!important;height:44px!important}.logoBrand{height:46px!important}}
-/* Blend the raster logo's near-black matte into dark page surfaces without altering the brand artwork. */
-.logoBrand,.footerLogo{background:transparent!important}
-.logoBrand img,.footerLogo img,.loginBrand>img{object-fit:contain!important;mix-blend-mode:screen;filter:contrast(1.32) saturate(1.08);background:transparent!important}
+
