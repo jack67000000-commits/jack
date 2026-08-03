@@ -4,22 +4,30 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 
 export default function AdminAuthCallbackPage() {
-  const [message, setMessage] = useState("正在验证登录链接…");
+  const [message, setMessage] = useState("正在验证登录…");
 
   useEffect(() => {
     const finishLogin = async () => {
-      const code = new URLSearchParams(window.location.search).get("code");
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          setMessage("登录链接无效或已经过期，请返回重新发送。");
-          return;
-        }
+      const { data: existingData } = await supabase.auth.getSession();
+      if (existingData.session?.user.email) {
+        window.location.replace("/admin");
+        return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user.email) {
-        setMessage("没有检测到有效登录，请返回重新发送验证邮件。");
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (!code) {
+        setMessage("没有检测到登录验证码，请返回登录页面重试。");
+        return;
+      }
+
+      const { data: exchangeData, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        setMessage("登录验证未完成，请返回登录页面重新尝试。");
+        return;
+      }
+
+      if (!exchangeData.session?.user.email) {
+        setMessage("没有检测到有效登录，请返回登录页面重试。");
         return;
       }
 

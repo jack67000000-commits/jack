@@ -13,7 +13,9 @@ export const supabase = createClient(
       flowType: "pkce",
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      // The callback page exchanges PKCE codes explicitly. Automatic URL
+      // detection would consume the same one-time code a second time.
+      detectSessionInUrl: false,
     },
   },
 );
