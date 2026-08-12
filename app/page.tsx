@@ -43,6 +43,18 @@ type SwipePoint = {
   time: number;
 };
 
+function tidyName(value: string) {
+  return value
+    .replaceAll("鈥檚", "’s")
+    .replaceAll("鈥�", "’")
+    .replaceAll("´", "’")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isJokerGame(game: Pick<Game, "name" | "provider">) {
+  return /joker|jester|payaso|comod[ií]n/i.test(`${game.name} ${game.provider}`);
+}
 const palette = ["#8b5cf6", "#f97316", "#eab308", "#ec4899", "#22c55e", "#3b82f6", "#ef4444", "#06b6d4", "#f43f5e"];
 
 const games: Game[] = (catalog as CatalogGame[]).map((item, index) => {
@@ -51,10 +63,10 @@ const games: Game[] = (catalog as CatalogGame[]).map((item, index) => {
 
   return {
     id: seed,
-    name: item.name,
+    name: tidyName(item.name),
     type: "Tragamonedas",
     provider: item.gplat_name,
-    icon: item.name.slice(0, 2).toUpperCase(),
+    icon: tidyName(item.name).slice(0, 2).toUpperCase(),
     imageUrl: item.img_url,
     link: item.target_url || item.link || `https://winking.games/game/${item.game_slug}`,
     color: palette[index % palette.length],
@@ -137,7 +149,7 @@ export default function Home() {
 
         return {
           ...game,
-          name: row?.name_es || game.name,
+          name: tidyName(row?.name_es || game.name),
           provider,
           imageUrl: row?.image_url || game.imageUrl,
           link: row?.target_url || redirectValue.provider_urls?.[provider] || redirectValue.published_url || redirectValue.default_url || game.link,
@@ -157,10 +169,10 @@ export default function Home() {
 
           return {
             id: seed,
-            name: row.name_es || row.name_zh || "Juego",
+            name: tidyName(row.name_es || row.name_zh || "Juego"),
             type: "Tragamonedas",
             provider,
-            icon: String(row.name_es || "JG").slice(0, 2).toUpperCase(),
+            icon: tidyName(String(row.name_es || "JG")).slice(0, 2).toUpperCase(),
             imageUrl: row.image_url || undefined,
             link: row.target_url || redirectValue.provider_urls?.[provider] || redirectValue.published_url || redirectValue.default_url,
             enabled: row.enabled ?? true,
@@ -219,6 +231,25 @@ export default function Home() {
     const total = liveGames.reduce((sum, game) => sum + game.score, 0);
     return (total / liveGames.length).toFixed(1);
   }, [liveGames]);
+
+  const hotGames = useMemo(() => {
+    const scored = liveGames
+      .filter((game) => game.enabled !== false)
+      .map((game) => ({
+        game,
+        score: game.players * 0.015 + game.rounds * 0.00001 + game.score * 3 + (isJokerGame(game) ? 260 : 0),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.game);
+
+    const jokerPick = scored.find(isJokerGame);
+    const ordered = [jokerPick, ...scored].filter(Boolean) as Game[];
+    const unique = new Map<number, Game>();
+    ordered.forEach((game) => unique.set(game.id, game));
+    return Array.from(unique.values()).slice(0, 5);
+  }, [liveGames]);
+
+  const jokerFeature = hotGames.find(isJokerGame);
 
   const shown = useMemo(() => {
     const query = q.trim().toLocaleLowerCase("es-AR");
@@ -297,6 +328,25 @@ export default function Home() {
           <div><b>{averageScore}%</b><span>Confianza promedio</span></div>
         </div>
       </section>
+
+      {hotGames.length > 0 && <section className="featured" aria-labelledby="hot-title">
+        <div className="featuredIntro">
+          <span>🔥 Recomendados</span>
+          <h2 id="hot-title">Juegos calientes ahora</h2>
+          <p>{jokerFeature ? `${jokerFeature.name} está destacado en la zona Joker.` : "Selección basada en señales en vivo y actividad reciente."}</p>
+        </div>
+        <div className="featuredGrid">
+          {hotGames.map((game, index) => {
+            const joker = isJokerGame(game);
+            return <button key={game.id} type="button" className={`featureCard${joker ? " jokerSpot" : ""}`} onClick={() => visit(game)} aria-label={`Ver pronóstico de ${game.name}`}>
+              <span className="featureRank">#{index + 1}</span>
+              <span className="featureArt">{game.imageUrl ? <img src={game.imageUrl} alt="" /> : game.icon}</span>
+              <span className="featureCopy"><small>{joker ? "Especial Joker" : game.provider}</small><strong>{game.name}</strong><em>{game.score.toFixed(2)}% confianza · {game.players.toLocaleString("es-AR")} en línea</em></span>
+              <b>Ver →</b>
+            </button>;
+          })}
+        </div>
+      </section>}
 
       <section className="board" id="games">
         <div className="controls">
