@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import catalog from "./game-catalog.json";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
+import { siteFromHostname, siteSettingsKey } from "./lib/sites";
 
 type Game = {
   id: number;
@@ -131,10 +132,11 @@ export default function Home() {
     if (!hasSupabaseConfig) return;
 
     let cancelled = false;
+    const siteKey = siteFromHostname(window.location.hostname);
     const loadPublishedConfig = async () => {
       const [{ data: overrides, error: gamesError }, { data: redirects }] = await Promise.all([
-        supabase.from("winking_games").select("id,slug,name_es,name_zh,provider,image_url,target_url,confidence,online_users,rounds,enabled,sort_order"),
-        supabase.from("winking_settings").select("value").eq("key", "redirects").maybeSingle(),
+        supabase.from("winking_games").select("id,slug,name_es,name_zh,provider,image_url,target_url,confidence,online_users,rounds,enabled,sort_order").eq("site_key", siteKey),
+        supabase.from("winking_settings").select("value").eq("key", siteSettingsKey(siteKey)).maybeSingle(),
       ]);
       if (gamesError || cancelled) return;
 
@@ -190,7 +192,7 @@ export default function Home() {
 
     void loadPublishedConfig();
     const channel = supabase
-      .channel("winking-public-sync")
+      .channel("winking-public-sync-" + siteKey)
       .on("postgres_changes", { event: "*", schema: "public", table: "winking_games" }, () => void loadPublishedConfig())
       .on("postgres_changes", { event: "*", schema: "public", table: "winking_settings" }, () => void loadPublishedConfig())
       .subscribe();

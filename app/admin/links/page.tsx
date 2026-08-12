@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import AdminSidebar from "../AdminSidebar";
 import { supabase } from "../../lib/supabase";
+import { managedSites, siteConfig, siteSettingsKey, type SiteKey } from "../../lib/sites";
 import "../admin.css";
 import "./links.css";
 
@@ -18,6 +19,8 @@ const providers = [
 type Scope = "all" | "published" | "provider";
 
 export default function LinksPage() {
+  const [siteKey, setSiteKey] = useState<SiteKey>("winking");
+  const currentSite = siteConfig(siteKey);
   const [currentLink, setCurrentLink] = useState("https://winking.games/");
   const [nextLink, setNextLink] = useState("https://winking.games/");
   const [scope, setScope] = useState<Scope>("all");
@@ -25,15 +28,19 @@ export default function LinksPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [history, setHistory] = useState([
-    { time: "今天 09:18", scope: "全部游戏", link: "https://winking.games/" },
-  ]);
+  const [history, setHistory] = useState<Array<{ time: string; scope: string; link: string }>>([]);
 
   useEffect(() => {
+    setCurrentLink(currentSite.defaultUrl);
+    setNextLink(currentSite.defaultUrl);
+    setConfirmed(false);
+    setMessage("");
+    setError("");
+    setHistory([]);
     supabase
       .from("winking_settings")
       .select("value")
-      .eq("key", "redirects")
+      .eq("key", siteSettingsKey(siteKey))
       .maybeSingle()
       .then(({ data }) => {
         const value = data?.value as { default_url?: string } | undefined;
@@ -42,7 +49,7 @@ export default function LinksPage() {
           setNextLink(value.default_url);
         }
       });
-  }, []);
+  }, [siteKey, currentSite.defaultUrl]);
   const affectedCount = useMemo(() => {
     if (scope === "published") return 607;
     if (scope === "provider") {
@@ -81,10 +88,10 @@ export default function LinksPage() {
     const { data: storedSetting } = await supabase
       .from("winking_settings")
       .select("value")
-      .eq("key", "redirects")
+      .eq("key", siteSettingsKey(siteKey))
       .maybeSingle();
     const redirectConfig: Record<string, unknown> & { default_url: string; open_in_new_tab: boolean; published_url?: string; provider_urls?: Record<string, string> } = {
-      default_url: "https://winking.games/",
+      default_url: currentSite.defaultUrl,
       open_in_new_tab: false,
       ...((storedSetting?.value ?? {}) as Record<string, unknown>),
     };
@@ -99,7 +106,7 @@ export default function LinksPage() {
 
     const { error: saveError } = await supabase
       .from("winking_settings")
-      .upsert({ key: "redirects", value: redirectConfig }, { onConflict: "key" });
+      .upsert({ key: siteSettingsKey(siteKey), value: redirectConfig }, { onConflict: "key" });
     if (saveError) {
       setError("保存失败，请重新登录后再试：" + saveError.message);
       return;
@@ -108,8 +115,8 @@ export default function LinksPage() {
     await supabase.from("winking_audit_logs").insert({
       action: "update_redirects",
       entity_type: "settings",
-      entity_id: scopeLabel,
-      details: { scope, provider, url: normalized, affected_count: affectedCount },
+      entity_id: siteKey + ":" + scopeLabel,
+      details: { site_key: siteKey, scope, provider, url: normalized, affected_count: affectedCount },
     });
     setCurrentLink(normalized);
     setNextLink(normalized);
@@ -117,7 +124,7 @@ export default function LinksPage() {
       { time: "刚刚", scope: scopeLabel, link: normalized },
       ...items,
     ]);
-    setMessage("已永久保存：" + affectedCount + " 款游戏将使用新的跳转链接，公开前台刷新后生效。");
+    setMessage("已永久保存到 " + currentSite.hostname + "：" + affectedCount + " 款游戏将使用新的跳转链接。");
     setConfirmed(false);
   };
 
@@ -133,9 +140,20 @@ export default function LinksPage() {
           </div>
           <div className="headActions">
             <a href="/admin/games">返回游戏管理</a>
-            <a href="/" target="_blank" rel="noreferrer">查看前台 ↗</a>
+            <a href={currentSite.defaultUrl} target="_blank" rel="noreferrer">查看前台 ↗</a>
           </div>
         </header>
+
+        <section className="siteSwitcher">
+          <div><small>当前管理站点</small><strong>{currentSite.label}</strong><span>{currentSite.hostname}</span></div>
+          <nav aria-label="切换管理站点">
+            {managedSites.map((site) => (
+              <button key={site.key} type="button" className={siteKey === site.key ? "active" : ""} onClick={() => setSiteKey(site.key)}>
+                <b>{site.label}</b><small>{site.hostname}</small>
+              </button>
+            ))}
+          </nav>
+        </section>
 
         <section className="linkOverview">
           <article>

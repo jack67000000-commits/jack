@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import catalog from "../../game-catalog.json";
 import AdminSidebar from "../AdminSidebar";
 import { supabase } from "../../lib/supabase";
+import { managedSites, siteConfig, siteSettingsKey, type SiteKey } from "../../lib/sites";
 import "../admin.css";
 import "./games.css";
 
@@ -52,6 +53,7 @@ function effectiveLink(game: Game, settings: RedirectSettings) {
 }
 
 export default function GamesPage() {
+  const [siteKey, setSiteKey] = useState<SiteKey>("winking");
   const [games, setGames] = useState<Game[]>(baseGames);
   const [provider, setProvider] = useState("全部");
   const [query, setQuery] = useState("");
@@ -67,8 +69,8 @@ export default function GamesPage() {
 
   const loadGames = useCallback(async () => {
     const [{ data: rows, error: gamesError }, { data: settings }] = await Promise.all([
-      supabase.from("winking_games").select("id,slug,name_es,name_zh,provider,image_url,target_url,confidence,online_users,rounds,enabled,sort_order"),
-      supabase.from("winking_settings").select("value").eq("key", "redirects").maybeSingle(),
+      supabase.from("winking_games").select("id,slug,name_es,name_zh,provider,image_url,target_url,confidence,online_users,rounds,enabled,sort_order").eq("site_key", siteKey),
+      supabase.from("winking_settings").select("value").eq("key", siteSettingsKey(siteKey)).maybeSingle(),
     ]);
 
     if (gamesError) {
@@ -121,16 +123,24 @@ export default function GamesPage() {
 
     setRedirects(nextRedirects);
     setGames([...merged, ...extras].sort((a, b) => a.sortOrder - b.sortOrder));
-  }, []);
+  }, [siteKey]);
 
   useEffect(() => {
     void loadGames();
-    const channel = supabase.channel("winking-admin-games")
+    const channel = supabase.channel("winking-admin-games-" + siteKey)
       .on("postgres_changes", { event: "*", schema: "public", table: "winking_games" }, () => void loadGames())
       .on("postgres_changes", { event: "*", schema: "public", table: "winking_settings" }, () => void loadGames())
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [loadGames]);
+  }, [loadGames, siteKey]);
+
+  useEffect(() => {
+    setProvider("全部");
+    setEditing(null);
+    setDeleting(null);
+    setNotice("");
+    setError("");
+  }, [siteKey]);
 
   const shown = useMemo(
     () => games.filter((game) => (provider === "全部" || game.provider === provider) && game.name.toLowerCase().includes(query.toLowerCase())),
@@ -161,7 +171,7 @@ export default function GamesPage() {
   const uploadImage = async (gameId: number, fallback: string) => {
     if (!imageFile) return fallback;
     const extension = imageFile.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "webp";
-    const path = "games/" + gameId + "-" + Date.now() + "." + extension;
+    const path = siteKey + "/games/" + gameId + "-" + Date.now() + "." + extension;
     const { error: uploadError } = await supabase.storage.from("winking-games").upload(path, imageFile, { cacheControl: "31536000", upsert: false });
     if (uploadError) throw uploadError;
     return supabase.storage.from("winking-games").getPublicUrl(path).data.publicUrl;
@@ -179,6 +189,7 @@ export default function GamesPage() {
       const inputLink = String(form.get("link") ?? "").trim();
       const globalLink = effectiveLink({ ...game, targetUrl: null }, redirects);
       const row = {
+        site_key: siteKey,
         id: game.id,
         slug: game.slug,
         name_es: String(form.get("name") ?? "").trim(),
@@ -193,10 +204,10 @@ export default function GamesPage() {
         sort_order: game.sortOrder,
         updated_at: new Date().toISOString(),
       };
-      const { error: saveError } = await supabase.from("winking_games").upsert(row, { onConflict: "id" });
+      const { error: saveError } = await supabase.from("winking_games").upsert(row, { onConflict: "site_key,id" });
       if (saveError) throw saveError;
-      await supabase.from("winking_audit_logs").insert({ action: "update_game", entity_type: "game", entity_id: String(game.id), details: { name: row.name_es } });
-      setNotice("已保存，前台会自动同步更新。");
+      await supabase.from("winking_audit_logs").insert({ action: "update_game", entity_type: "game", entity_id: siteKey + ":" + game.id, details: { site_key: siteKey, name: row.name_es } });
+      setNotice("已保存到 " + siteConfig(siteKey).hostname + "，对应前台会自动同步更新。");
       setEditing(null);
       resetImage();
       await loadGames();
@@ -219,10 +230,11 @@ export default function GamesPage() {
     setBusy(true);
     setError("");
     const { error: saveError } = await supabase.from("winking_games").upsert({
+      site_key: siteKey,
       id: game.id, slug: game.slug, name_es: game.name, name_zh: game.nameZh || null, provider: game.provider,
       image_url: game.image, target_url: game.targetUrl, confidence: game.confidence, online_users: game.users,
       rounds: game.rounds, enabled: false, sort_order: game.sortOrder, updated_at: new Date().toISOString(),
-    }, { onConflict: "id" });
+    }, { onConflict: "site_key,id" });
     if (saveError) setError("下架失败：" + saveError.message);
     else {
       setNotice("游戏已下架，前台会自动隐藏。");
@@ -237,7 +249,8 @@ export default function GamesPage() {
     setEditing(game);
   };
 
-  const currentDefault = redirects.default_url || "https://winking.game/";
+  const currentSite = siteConfig(siteKey);
+  const currentDefault = redirects.default_url || currentSite.defaultUrl;
 
   return (
     <div className="adminShell">
@@ -245,8 +258,19 @@ export default function GamesPage() {
       <main className="content gamesContent">
         <header>
           <div><small>管理后台 / 游戏管理</small><h1>游戏管理</h1><p>保存后，名称、图片、数值、状态和跳转链接会同步到前台。</p></div>
-          <div className="headActions"><a href="/">查看前台 →</a><button onClick={() => { resetImage(); setAddOpen(true); }}>＋ 新增游戏</button></div>
+          <div className="headActions"><a href={currentSite.defaultUrl} target="_blank" rel="noreferrer">查看前台 ↗</a><button onClick={() => { resetImage(); setAddOpen(true); }}>＋ 新增游戏</button></div>
         </header>
+
+        <section className="siteSwitcher">
+          <div><small>当前管理站点</small><strong>{currentSite.label}</strong><span>{currentSite.hostname}</span></div>
+          <nav aria-label="切换管理站点">
+            {managedSites.map((site) => (
+              <button key={site.key} className={siteKey === site.key ? "active" : ""} onClick={() => setSiteKey(site.key)}>
+                <b>{site.label}</b><small>{site.hostname}</small>
+              </button>
+            ))}
+          </nav>
+        </section>
 
         {error && <div className="adminMessage error">! {error}</div>}
         {notice && <div className="adminMessage success">✓ {notice}</div>}
