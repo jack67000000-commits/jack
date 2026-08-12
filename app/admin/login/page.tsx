@@ -114,7 +114,7 @@ export default function AdminLoginPage() {
               登录密码
               <div className="passwordField">
                 <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" minLength={10} required />
-                <button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "隐藏" : "显示"}</button>
+                <button type="button" aria-label={showPassword ? "隐藏密码" : "显示密码"} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>{showPassword ? "隐藏" : "显示"}</button>
               </div>
             </label>
             <button className="loginSubmit" type="submit" disabled={loading !== null}>{loading === "password" ? "正在验证…" : "使用密码登录"}</button>
