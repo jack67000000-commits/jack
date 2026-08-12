@@ -214,6 +214,12 @@ export default function Home() {
     return () => clearInterval(id);
   }, []);
 
+  const averageScore = useMemo(() => {
+    if (!liveGames.length) return "0.0";
+    const total = liveGames.reduce((sum, game) => sum + game.score, 0);
+    return (total / liveGames.length).toFixed(1);
+  }, [liveGames]);
+
   const shown = useMemo(() => {
     const query = q.trim().toLocaleLowerCase("es-AR");
 
@@ -288,7 +294,7 @@ export default function Home() {
         <div className="stats">
           <div><b>{liveGames.length}</b><span>Juegos seguidos</span></div>
           <div><b>{liveGames.reduce((sum, game) => sum + game.players, 0).toLocaleString("es-AR")}</b><span>Jugadores online</span></div>
-          <div><b>63.2%</b><span>Confianza promedio</span></div>
+          <div><b>{averageScore}%</b><span>Confianza promedio</span></div>
         </div>
       </section>
 
@@ -301,7 +307,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="title"><div><i /><h2>Pronósticos en vivo</h2><small>{shown.length} juegos</small></div><small>Actualizado recién</small></div>
+        <div className="title"><div><i /><h2>Pronósticos en vivo</h2><small>{shown.length} juegos</small></div><small>Señales actualizadas en tiempo real</small></div>
 
         <div
           className="cards mobileSwipe"
