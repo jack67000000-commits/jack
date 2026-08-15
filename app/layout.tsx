@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Winking.Game · Pronósticos de juegos",
-  description: "Tendencias y referencias de juegos en una vista clara.",
+  title: "Winking.Game · Señales de juegos en vivo",
+  description: "Señales orientativas, tendencias y referencias de juegos actualizadas para Argentina.",
   appleWebApp: {
     capable: true,
     title: "Winking.Game",

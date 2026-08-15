@@ -264,7 +264,7 @@ export default function Home() {
       })
       .sort((a, b) => {
         if (sort === "Mayor confianza") return b.score - a.score;
-        if (sort === "Jugadores en línea") return b.players - a.players;
+        if (sort === "Más jugadores en línea") return b.players - a.players;
         return a.id - b.id;
       });
   }, [tab, q, sort, liveGames]);
@@ -316,35 +316,35 @@ export default function Home() {
     <main>
       <header>
         <a className="brand logoBrand" href="#top" aria-label="Winking Game"><img src="/winking-logo.png" alt="Winking.Game" /></a>
-        <nav><a href="#games">Pronósticos</a><a href="#method">Metodología</a><a href="#notice">Aviso</a></nav>
-        <div className="live"><i />Datos en vivo</div>
+        <nav><a href="#games">Pronósticos</a><a href="#method">Cómo funciona</a><a href="#notice">Aviso responsable</a></nav>
+        <div className="live"><i />Señales en vivo</div>
       </header>
 
       <section className="hero" id="top">
-        <div className="eyebrow">MODELO IA · ACTUALIZA CADA 5 MIN</div>
-        <h1>¿Cómo viene la tendencia?<em>Decidí con más contexto</em></h1>
-        <p>Analizamos la actividad reciente para ofrecerte una referencia clara y simple.</p>
+        <div className="eyebrow">SEÑALES EN VIVO · SE ACTUALIZA CADA 5 MIN</div>
+        <h1>Mirá la tendencia antes de elegir<em>Decidí con más contexto</em></h1>
+        <p>Leemos la actividad reciente, el volumen de rondas y los cambios de ritmo para darte una referencia clara, simple y actualizada.</p>
         <div className="stats">
-          <div><b>{liveGames.length}</b><span>Juegos seguidos</span></div>
-          <div><b>{liveGames.reduce((sum, game) => sum + game.players, 0).toLocaleString("es-AR")}</b><span>Jugadores online</span></div>
-          <div><b>{averageScore}%</b><span>Confianza promedio</span></div>
+          <div><b>{liveGames.length}</b><span>Juegos monitoreados</span></div>
+          <div><b>{liveGames.reduce((sum, game) => sum + game.players, 0).toLocaleString("es-AR")}</b><span>Personas jugando ahora</span></div>
+          <div><b>{averageScore}%</b><span>Confianza media</span></div>
         </div>
       </section>
 
       {hotGames.length > 0 && <section className="featured" aria-labelledby="hot-title">
         <div className="featuredIntro">
-          <span>🔥 Recomendados</span>
-          <h2 id="hot-title">Juegos calientes ahora</h2>
-          <p>{jokerFeature ? `${jokerFeature.name} está destacado en la zona Joker.` : "Selección basada en señales en vivo y actividad reciente."}</p>
+          <span>🔥 Más buscados</span>
+          <h2 id="hot-title">Populares ahora</h2>
+          <p>{jokerFeature ? `${jokerFeature.name} aparece destacado en la zona Joker por su actividad reciente.` : "Seleccionamos juegos con más movimiento y señales recientes más claras."}</p>
         </div>
         <div className="featuredGrid">
           {hotGames.map((game, index) => {
             const joker = isJokerGame(game);
-            return <button key={game.id} type="button" className={`featureCard${joker ? " jokerSpot" : ""}`} onClick={() => visit(game)} aria-label={`Ver pronóstico de ${game.name}`}>
+            return <button key={game.id} type="button" className={`featureCard${joker ? " jokerSpot" : ""}`} onClick={() => visit(game)} aria-label={`Abrir pronóstico de ${game.name}`}>
               <span className="featureRank">#{index + 1}</span>
               <span className="featureArt">{game.imageUrl ? <img src={game.imageUrl} alt="" /> : game.icon}</span>
-              <span className="featureCopy"><small>{joker ? "Especial Joker" : game.provider}</small><strong>{game.name}</strong><em>{game.score.toFixed(2)}% confianza · {game.players.toLocaleString("es-AR")} en línea</em></span>
-              <b>Ver →</b>
+              <span className="featureCopy"><small>{joker ? "Especial Joker" : game.provider}</small><strong>{game.name}</strong><em>{game.score.toFixed(2)}% de confianza · {game.players.toLocaleString("es-AR")} jugando</em></span>
+              <b>Ver pronóstico →</b>
             </button>;
           })}
         </div>
@@ -354,12 +354,12 @@ export default function Home() {
         <div className="controls">
           <div className="tabs">{["Todos", "Tada Gaming", "King Game", "PG Soft", "Rectangle", "Pragmatic Play", "Evoplay"].map((item) => <button key={item} className={tab === item ? "on" : ""} onClick={() => setTab(item)}>{item}</button>)}</div>
           <div className="actions">
-            <label>⌕<input value={q} onChange={(event) => setQ(event.target.value)} placeholder="Buscar juego" /></label>
-            <select value={sort} onChange={(event) => setSort(event.target.value)}><option>Recomendados</option><option>Mayor confianza</option><option>Jugadores en línea</option></select>
+            <label>⌕<input value={q} onChange={(event) => setQ(event.target.value)} placeholder="Buscá por nombre del juego" /></label>
+            <select value={sort} onChange={(event) => setSort(event.target.value)}><option>Recomendados</option><option>Mayor confianza</option><option>Más jugadores en línea</option></select>
           </div>
         </div>
 
-        <div className="title"><div><i /><h2>Pronósticos en vivo</h2><small>{shown.length} juegos</small></div><small>Señales actualizadas en tiempo real</small></div>
+        <div className="title"><div><i /><h2>Señales de juegos en vivo</h2><small>{shown.length} juegos</small></div><small>Actualización automática en vivo</small></div>
 
         <div
           className="cards mobileSwipe"
@@ -376,28 +376,28 @@ export default function Home() {
           {paged.map((game) => <article key={game.id}>
             <div className="cardhead">
               <div className="icon" style={{ background: `linear-gradient(145deg,${game.color},#111827)` }}>{game.imageUrl ? <img src={game.imageUrl} alt={game.name} /> : game.icon}</div>
-              <div className="game"><h3>{game.name}</h3><span><i /> {game.players.toLocaleString("es-AR")} en línea</span></div>
+              <div className="game"><h3>{game.name}</h3><span><i /> {game.players.toLocaleString("es-AR")} jugando ahora</span></div>
               <mark>{game.provider}</mark>
             </div>
-            <div className="chart"><div><span>Tendencia de 6 días</span><b style={{ color: game.color }}>↗ {game.trend.at(-1)}%</b></div><Chart g={game} /></div>
+            <div className="chart"><div><span>Tendencia de los últimos 6 días</span><b style={{ color: game.color }}>↗ {game.trend.at(-1)}%</b></div><Chart g={game} /></div>
             <div className="prizes">{game.prizes.map((value, index) => <span key={`${game.id}-${index}`}><small>{["Alta", "Media", "Baja"][index]}</small><b className="liveIndex">{value}</b></span>)}</div>
-            <div className="confidence"><div className="confidenceLabel"><span>Confianza del modelo</span><small>Actualización en vivo</small></div><div className="bar scoreBar"><i style={{ width: `${game.score}%`, background: game.color }} /><strong key={game.score} className="liveNumber">{game.score.toFixed(2)}%</strong></div></div>
-            <div className="foot"><span>Muestra: {game.rounds.toLocaleString("es-AR")} rondas</span><button onClick={() => visit(game)}>Ver pronóstico <b>→</b></button></div>
+            <div className="confidence"><div className="confidenceLabel"><span>Nivel de confianza</span><small>Se actualiza en vivo</small></div><div className="bar scoreBar"><i style={{ width: `${game.score}%`, background: game.color }} /><strong key={game.score} className="liveNumber">{game.score.toFixed(2)}%</strong></div></div>
+            <div className="foot"><span>Base: {game.rounds.toLocaleString("es-AR")} rondas analizadas</span><button onClick={() => visit(game)}>Ver pronóstico <b>→</b></button></div>
           </article>)}
         </div>
 
         {pageCount > 1 && <div className="mobilePager" aria-label="Cambiar tarjeta">
-          <button type="button" aria-label="Tarjeta anterior" onContextMenu={(event) => event.preventDefault()} onPointerDown={(event) => { event.preventDefault(); startHoldPaging(-1); }} onPointerUp={stopHoldPaging} onPointerLeave={stopHoldPaging} onPointerCancel={stopHoldPaging}>‹</button>
+          <button type="button" aria-label="Juego anterior" onContextMenu={(event) => event.preventDefault()} onPointerDown={(event) => { event.preventDefault(); startHoldPaging(-1); }} onPointerUp={stopHoldPaging} onPointerLeave={stopHoldPaging} onPointerCancel={stopHoldPaging}>‹</button>
           <span><b>{safePage + 1}</b><small>/ {pageCount}</small></span>
-          <button type="button" aria-label="Siguiente tarjeta" onContextMenu={(event) => event.preventDefault()} onPointerDown={(event) => { event.preventDefault(); startHoldPaging(1); }} onPointerUp={stopHoldPaging} onPointerLeave={stopHoldPaging} onPointerCancel={stopHoldPaging}>›</button>
+          <button type="button" aria-label="Siguiente juego" onContextMenu={(event) => event.preventDefault()} onPointerDown={(event) => { event.preventDefault(); startHoldPaging(1); }} onPointerUp={stopHoldPaging} onPointerLeave={stopHoldPaging} onPointerCancel={stopHoldPaging}>›</button>
         </div>}
 
         {pageCount > 1 && <div className="pagination" aria-label="Paginación"><span className="pageCounter">{safePage + 1} / {pageCount}</span>{dotPages.map((item) => <button key={item} className={safePage === item ? "active" : ""} onClick={() => setPage(item)} aria-label={`Ir a la página ${item + 1}`} aria-current={safePage === item ? "page" : undefined}><span /></button>)}</div>}
-        {!shown.length && <div className="empty">No encontramos juegos. Probá con otra búsqueda.</div>}
+        {!shown.length && <div className="empty">No encontramos ese juego. Probá con otro nombre o proveedor.</div>}
       </section>
 
-      <section className="method" id="method">{[["01", "Relevamos tendencias", "Reunimos muestras recientes y cambios de actividad."], ["02", "Analizamos señales", "Detectamos variaciones, continuidad y señales atípicas."], ["03", "Mostramos el resultado", "Presentamos el análisis con una confianza fácil de leer."]].map((item) => <div key={item[0]}><span>{item[0]}</span><h3>{item[1]}</h3><p>{item[2]}</p></div>)}</section>
-      <footer id="notice"><div className="brand footerLogo"><img src="/winking-logo.png" alt="Winking.Game" /></div><p>Contenido informativo y recreativo. No garantiza resultados ni ganancias. Jugá con responsabilidad.</p><span>© 2026 Winking.Game</span></footer>
+      <section className="method" id="method">{[["01", "Revisamos la actividad", "Tomamos señales recientes, volumen de rondas y cambios de ritmo."], ["02", "Detectamos la tendencia", "Comparamos variaciones normales con movimientos fuera de lo común."], ["03", "Te mostramos una referencia", "Ves un porcentaje fácil de leer para decidir con más contexto."]].map((item) => <div key={item[0]}><span>{item[0]}</span><h3>{item[1]}</h3><p>{item[2]}</p></div>)}</section>
+      <footer id="notice"><div className="brand footerLogo"><img src="/winking-logo.png" alt="Winking.Game" /></div><p>Información orientativa y recreativa. No garantiza resultados ni ganancias. Jugá con responsabilidad y solo si sos mayor de edad.</p><span>© 2026 Winking.Game</span></footer>
     </main>
   );
 }
