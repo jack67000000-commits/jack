@@ -121,11 +121,25 @@ export default function Home() {
   const swipeStart = useRef<SwipePoint | null>(null);
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 760px), (pointer: coarse) and (max-width: 900px)");
-    const sync = () => setIsMobileCardMode(media.matches);
+    const widthQuery = window.matchMedia("(max-width: 900px)");
+    const touchQuery = window.matchMedia("(pointer: coarse)");
+    const sync = () => {
+      const shortSide = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight);
+      const phoneLikeScreen = shortSide <= 540;
+      const touchDeviceViewport = touchQuery.matches && window.innerWidth <= 1180;
+      setIsMobileCardMode(widthQuery.matches || phoneLikeScreen || touchDeviceViewport);
+    };
     sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
+    widthQuery.addEventListener("change", sync);
+    touchQuery.addEventListener("change", sync);
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      widthQuery.removeEventListener("change", sync);
+      touchQuery.removeEventListener("change", sync);
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
   }, []);
 
   useEffect(() => {
@@ -313,7 +327,7 @@ export default function Home() {
   useEffect(() => stopHoldPaging, []);
 
   return (
-    <main>
+    <main className={isMobileCardMode ? "mobileLayout" : undefined}>
       <header>
         <a className="brand logoBrand" href="#top" aria-label="Winking Game"><img src="/winking-logo.png" alt="Winking.Game" /></a>
         <nav><a href="#games">Pronósticos</a><a href="#method">Cómo funciona</a><a href="#notice">Aviso responsable</a></nav>

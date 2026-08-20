@@ -21,5 +21,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es-AR"><body>{children}</body></html>;
+  return <html lang="es-AR"><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" /></head><body>{children}</body></html>;
 }
